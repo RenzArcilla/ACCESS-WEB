@@ -1,0 +1,32 @@
+# Dependabot configuration for ACCESS Web Portal
+# Automatically creates PRs to update dependencies and security patches
+
+version: 2
+updates:
+  # GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "Type: Maintenance"
+      - "Severity: Low"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Root workspace (npm/pnpm)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "Type: Maintenance"
+      - "Severity: Low"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"

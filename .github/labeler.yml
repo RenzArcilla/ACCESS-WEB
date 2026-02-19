@@ -1,0 +1,46 @@
+# Frontend Changes
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "app/**"
+          - "components/**"
+          - "hooks/**"
+          - "styles/**"
+          - "public/**"
+          - "types/**"
+
+# Backend & Database Changes (Supabase)
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "app/api/**"
+          - "lib/**"
+          - "utils/**"
+          - "supabase/**"
+          - "actions/**"
+
+# Configuration & Dependencies
+configuration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "pnpm-lock.yaml"
+          - "package-lock.json"
+          - "next.config.*"
+          - "tsconfig.json"
+          - "tailwind.config.*"
+          - ".env*"
+          - "postcss.config.*"
+
+# Documentation
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "docs/**"
+
+# CI/CD & Workflows
+ci-cd:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
