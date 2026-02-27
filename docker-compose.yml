@@ -1,0 +1,32 @@
+services:
+  web:
+    build:
+      context: .
+      target: development
+    image: access-web:latest   # removes redundant "-web" suffix
+    container_name: access-web-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - /app/node_modules
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules
+            - .next
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+    env_file:
+      - .env.local
+    deploy: 
+      resources:
+        limits: 
+          memory: 2g
+          cpus: "2.0"
+        reservations:
+          memory: 512m
