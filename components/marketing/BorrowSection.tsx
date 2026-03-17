@@ -88,7 +88,7 @@ export default function BorrowSection() {
         {/* Action Buttons */}
         <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-5 w-full">
           <button
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-white transition-opacity hover:opacity-90 min-w-[220px]"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-white transition-all duration-300 hover:scale-105 hover:shadow-[0_8px_25px_rgba(242,98,35,0.6)] hover:opacity-95 min-w-[220px]"
             style={{
               background: "#F26223",
               boxShadow: "0 6px 20px rgba(242,98,35,0.4)",
@@ -97,7 +97,7 @@ export default function BorrowSection() {
             Submit a Request
           </button>
           <button
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-white transition-colors hover:bg-white/20 min-w-[220px]"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold text-white transition-all duration-300 hover:scale-105 hover:bg-white/20 hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] min-w-[220px]"
             style={{
               background: "rgba(255, 255, 255, 0.12)",
               border: "1px solid rgba(255, 255, 255, 0.15)",
