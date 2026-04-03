@@ -2,10 +2,11 @@
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public."Users" (id, email, role, created_at, updated_at)
+  INSERT INTO public."Users" (id, email, organization_name, role, created_at, updated_at)
   VALUES (
     new.id, 
     new.email, 
+    (new.raw_user_meta_data->>'organization_name'),
     'Pending', -- Default role for new signups
     now(), 
     now()
