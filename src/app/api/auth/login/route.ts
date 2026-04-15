@@ -28,7 +28,6 @@ export async function POST(req: Request) {
     }
     
     // Fallback for internal crashes (500)
-    console.error(err); 
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

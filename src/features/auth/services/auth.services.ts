@@ -42,3 +42,11 @@ export async function logInService(input: SignInInput) {
 
   return data;
 }
+
+export async function logOutService() {
+  const supabase = await createSupabaseServerClient();
+  
+  const { error } = await supabase.auth.signOut();
+
+  if (error) throw new AppError(error.message, 500);
+}
