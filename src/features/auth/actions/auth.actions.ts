@@ -3,23 +3,22 @@
 import {revalidatePath} from "next/cache";
 import {redirect} from "next/navigation";
 import {createSupabaseServerClient} from "@/lib/supabase/server-client";
-import { registerOrganization } from "../services/auth.services";
+import { logInService, registerOrganization } from "../services/auth.services";
 
 export const signIn = async (formData: FormData) => {
-  const supabase = await createSupabaseServerClient();
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-  const data = {
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-  };
+  try {
+    await logInService({email, password});
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error
+    ? err. message
+    : "An unexpected error occured";
 
-  const { error } = await supabase.auth.signInWithPassword(data);
-
-  if (error) {
-      return {error: error.message};
+    return { error: errorMessage }
   }
 
-  // If there's already an existing cached data, should return to landing page
   revalidatePath("/", "layout");
   redirect("/")
 }
@@ -43,7 +42,6 @@ export const signUp = async (formData: FormData) => {
     return { error: errorMessage };
   }
 
-  // UI-specific logic stays here
   revalidatePath("/", "layout");
   redirect("/");
 };

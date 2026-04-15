@@ -3,7 +3,7 @@ import { AppError } from "@/lib/errors";
 
 export type SignUpInput = {
   email: string;
-  password?: string; 
+  password: string; 
   organizationName: string;
 };
 
@@ -22,5 +22,23 @@ export async function registerOrganization(input: SignUpInput) {
 
   if (error) throw new AppError(error.message, error.status);
   
+  return data;
+}
+
+export type SignInInput = {
+  email: string;
+  password: string;
+};
+
+export async function logInService(input: SignInInput) {
+  const supabase = await createSupabaseServerClient();
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: input.email,
+    password: input.password!,
+  });
+
+  if (error) throw new AppError(error.message, error.status);
+
   return data;
 }
