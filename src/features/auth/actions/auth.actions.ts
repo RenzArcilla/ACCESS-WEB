@@ -5,17 +5,24 @@ import {redirect} from "next/navigation";
 import { SignUpSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema } from "../schemas";
 import { forgotPasswordService, logInService, logOutService, registerOrganization, resetPasswordService } from "../services/auth.services";
 
-export const signUpAction = async (formData: FormData) => {
+type ActionState =
+  | { status: "idle" }
+  | { status: "success" }
+  | { status: "error"; message: string };
+
+export async function signUpAction(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const rawData = Object.fromEntries(formData);
   const result = SignUpSchema.safeParse(rawData);
   
   if (!result.success) {
     // Return the first error
-    const errorMessage = result.error.issues
-    .map((issue) => issue.message)
-    .at(0);
-    
-  return { error: errorMessage };
+    return { 
+      status: "error", 
+      message: result.error.issues.map((i) => i.message).at(0) ?? "Invalid input"
+    };
   }
 
   try {
@@ -23,43 +30,44 @@ export const signUpAction = async (formData: FormData) => {
 
     // Revalidate to clear any stale cache
     revalidatePath("/", "layout");
-    return { success: true };
+    return { status: "success" };
 
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error 
-      ? err.message 
-      : "An unexpected error occurred";
-
-    return { error: errorMessage };
+  } catch (err) {
+    return { 
+      status: "error", 
+      message: err instanceof Error ? err.message : "An unexpected error occurred" 
+    };
   }
 };
 
-export const signInAction = async (formData: FormData) => {
+export async function signInAction(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const rawData = Object.fromEntries(formData);
   const result = LoginSchema.safeParse(rawData);
   
   if (!result.success) {
     // Return the first error
-    const errorMessage = result.error.issues
-    .map((issue) => issue.message)
-    .at(0);
-    
-  return { error: errorMessage };
+    return { 
+      status: "error", 
+      message: result.error.issues.map((i) => i.message).at(0) ?? "Invalid input"
+    };
   }
 
   try {
     await logInService(result.data);
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error
-    ? err. message
-    : "An unexpected error occured";
+  
+    // Revalidate to clear any stale cache
+    revalidatePath("/", "layout");
+    redirect("/")
 
-    return { error: errorMessage }
+  } catch (err) {
+    return { 
+      status: "error", 
+      message: err instanceof Error ? err.message : "An unexpected error occurred" 
+    };
   }
-
-  // Clear cache before redirect
-  revalidatePath("/", "layout");
-  redirect("/")
 };
 
 export const signOut = async () => {
@@ -74,52 +82,54 @@ export const signOut = async () => {
   redirect("/auth/login");
 };
 
-export async function ForgotPasswordAction(formData: FormData) {
+export async function forgotPasswordAction(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const rawData = Object.fromEntries(formData);
   const result = ForgotPasswordSchema.safeParse(rawData);
 
   if (!result.success) {
     // Return the first error
-    const errorMessage = result.error.issues
-    .map((issue) => issue.message)
-    .at(0);
-    
-  return { error: errorMessage };
+    return { 
+      status: "error", 
+      message: result.error.issues.map((i) => i.message).at(0) ?? "Invalid input"
+    };
   }
 
   try {
       await forgotPasswordService(result.data.email);
-      alert("Check your email for the reset link!");
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : "Failed to send reset link.";
+      return { status: "success" };
+  } catch (err) {
+    return { 
+      status: "error", 
+      message: err instanceof Error ? err.message : "An unexpected error occurred" 
+    };
+  }
+};
 
-      return { error: errorMessage  };
-    }
-}
-
-export async function resetPasswordAction(formData: FormData) {
+export async function resetPasswordAction(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
   const rawData = Object.fromEntries(formData);
   const result = ResetPasswordSchema.safeParse(rawData);
 
   if (!result.success) {
     // Return the first error
-    const errorMessage = result.error.issues
-    .map((issue) => issue.message)
-    .at(0);
-    
-  return { error: errorMessage };
+    return { 
+      status: "error", 
+      message: result.error.issues.map((i) => i.message).at(0) ?? "Invalid input"
+    };
   }
 
   try {
       await resetPasswordService(result.data.password);
-      alert("Check your email for the reset link!");
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : "Failed to send reset link.";
-
-      return { error: errorMessage  };
-    }
+      return { status: "success" };
+  } catch (err) {
+    return { 
+      status: "error", 
+      message: err instanceof Error ? err.message : "An unexpected error occurred" 
+    };
+  }
 };
