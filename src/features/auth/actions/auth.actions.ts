@@ -2,41 +2,27 @@
 
 import {revalidatePath} from "next/cache";
 import {redirect} from "next/navigation";
-import { logInService, logOutService, registerOrganization } from "../services/auth.services";
+import { SignUpSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema } from "../schemas";
+import { forgotPasswordService, logInService, logOutService, registerOrganization, resetPasswordService } from "../services/auth.services";
 
-export const signIn = async (formData: FormData) => {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  try {
-    await logInService({email, password});
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error
-    ? err. message
-    : "An unexpected error occured";
-
-    return { error: errorMessage }
+export const signUpAction = async (formData: FormData) => {
+  const rawData = Object.fromEntries(formData);
+  const result = SignUpSchema.safeParse(rawData);
+  
+  if (!result.success) {
+    // Return the first error
+    const errorMessage = result.error.issues
+    .map((issue) => issue.message)
+    .at(0);
+    
+  return { error: errorMessage };
   }
 
-  revalidatePath("/", "layout");
-  redirect("/")
-}
-
-export const signUp = async (formData: FormData) => {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const organizationName = formData.get("organization_name") as string;
-
   try {
-    await registerOrganization({
-      email,
-      password,
-      organizationName,
-    });
+    await registerOrganization(result.data);
 
     // Revalidate to clear any stale cache
     revalidatePath("/", "layout");
-    
     return { success: true };
 
   } catch (err: unknown) {
@@ -46,6 +32,34 @@ export const signUp = async (formData: FormData) => {
 
     return { error: errorMessage };
   }
+};
+
+export const signInAction = async (formData: FormData) => {
+  const rawData = Object.fromEntries(formData);
+  const result = LoginSchema.safeParse(rawData);
+  
+  if (!result.success) {
+    // Return the first error
+    const errorMessage = result.error.issues
+    .map((issue) => issue.message)
+    .at(0);
+    
+  return { error: errorMessage };
+  }
+
+  try {
+    await logInService(result.data);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error
+    ? err. message
+    : "An unexpected error occured";
+
+    return { error: errorMessage }
+  }
+
+  // Clear cache before redirect
+  revalidatePath("/", "layout");
+  redirect("/")
 };
 
 export const signOut = async () => {
@@ -58,4 +72,54 @@ export const signOut = async () => {
   // Clear cache and send them back to login
   revalidatePath("/", "layout");
   redirect("/auth/login");
+};
+
+export async function ForgotPasswordAction(formData: FormData) {
+  const rawData = Object.fromEntries(formData);
+  const result = ForgotPasswordSchema.safeParse(rawData);
+
+  if (!result.success) {
+    // Return the first error
+    const errorMessage = result.error.issues
+    .map((issue) => issue.message)
+    .at(0);
+    
+  return { error: errorMessage };
+  }
+
+  try {
+      await forgotPasswordService(result.data.email);
+      alert("Check your email for the reset link!");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : "Failed to send reset link.";
+
+      return { error: errorMessage  };
+    }
+}
+
+export async function resetPasswordAction(formData: FormData) {
+  const rawData = Object.fromEntries(formData);
+  const result = ResetPasswordSchema.safeParse(rawData);
+
+  if (!result.success) {
+    // Return the first error
+    const errorMessage = result.error.issues
+    .map((issue) => issue.message)
+    .at(0);
+    
+  return { error: errorMessage };
+  }
+
+  try {
+      await resetPasswordService(result.data.password);
+      alert("Check your email for the reset link!");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : "Failed to send reset link.";
+
+      return { error: errorMessage  };
+    }
 };
