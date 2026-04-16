@@ -4,6 +4,7 @@ import {revalidatePath} from "next/cache";
 import {redirect} from "next/navigation";
 import { SignUpSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema } from "../schemas";
 import { forgotPasswordService, logInService, logOutService, registerOrganization, resetPasswordService } from "../services/auth.services";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 type ActionState =
   | { status: "idle" }
@@ -57,12 +58,11 @@ export async function signInAction(
 
   try {
     await logInService(result.data);
-  
-    // Revalidate to clear any stale cache
     revalidatePath("/", "layout");
     redirect("/")
 
   } catch (err) {
+    if (isRedirectError(err)) throw err;
     return { 
       status: "error", 
       message: err instanceof Error ? err.message : "An unexpected error occurred" 

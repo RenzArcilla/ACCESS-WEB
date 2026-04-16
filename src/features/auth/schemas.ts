@@ -27,7 +27,7 @@ export const LoginSchema = z.object({
 export const SignUpSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  organizationName: z.string()
+  organization_name: z.string()
     .trim()
     .min(3, "Org name must be at least 3 characters")
     .max(50, "Max 50 characters allowed")
