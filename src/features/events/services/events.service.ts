@@ -72,3 +72,14 @@ export async function unpublishEventById(id: string) {
 
   if (error) throw error;
 }
+
+export async function deleteEventById(id: string) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from('Events')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from 'react';
-import { togglePublishAction } from "@/features/events/actions/events.actions";
+import { deleteEventAction, togglePublishAction } from "@/features/events/actions/events.actions";
 import { Tables } from '@/lib/supabase/database.types';
 import Link from 'next/link';
 
@@ -16,6 +16,19 @@ export default function EventRow({ event }: { event: EventRowProps }) {
       const result = await togglePublishAction(event.id, event.status ?? 'Draft');
       if (!result.success) {
         alert("Something went wrong!");
+      }
+    });
+  };
+
+  const handleDelete = () => {
+    if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await deleteEventAction(event.id);
+      if (!result.success) {
+        alert("Failed to delete event.");
       }
     });
   };
@@ -52,8 +65,12 @@ export default function EventRow({ event }: { event: EventRowProps }) {
         >
           Edit
         </Link>
-        <button className="text-xs font-bold text-slate-400 hover:text-red-600 uppercase transition-colors">
-          Delete
+        <button 
+          onClick={handleDelete}
+          disabled={isPending}
+          className="text-xs font-bold text-slate-400 hover:text-red-600 uppercase transition-colors disabled:cursor-not-allowed"
+        >
+          {isPending ? 'Deleting...' : 'Delete'}
         </button>
       </td>
     </tr>
