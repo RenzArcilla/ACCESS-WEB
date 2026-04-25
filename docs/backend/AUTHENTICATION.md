@@ -79,9 +79,13 @@ Server actions handling all auth operations.
 
 | Action | Description |
 |---|---|
-| `signUp` | Registers a new user with email, password, and organization name |
-| `signIn` | Authenticates an existing user and sets session cookies |
-| `signOut` | Clears the session and redirects to `/auth/login` |
+| `signUpAction` | Registers a new user with email, password, and organization name |
+| `signInAction` | Authenticates an existing user and sets session cookies |
+| `signOutAction` | Clears the session and redirects to `/auth/login` |
+| `forgotPasswordAction` | Lets users request for a reset link via email |
+| `resetPasswordAction` | Lets users change their password |
+
+> **Note:** The reset-password page is only accessible via a one-time-use link sent through the user's email.
 
 ---
 
@@ -89,7 +93,7 @@ Server actions handling all auth operations.
 
 ### `AuthForms.tsx`
 
-A single form component that toggles between sign-in and sign-up mode using `useState`. Rendered by both `/auth/login` and `/auth/register` pages.
+Form components used when rendering (registration, login, logout, etc.) pages.
 
 ### `LogoutButton.tsx`
 
@@ -101,19 +105,29 @@ Reads the current session from the Supabase browser client on mount. Renders a *
 
 ---
 
-## Route Protection (`proxy.ts`)
+## Route Protection (`middleware.ts`)
 
 Middleware runs on every request and validates the session using the Supabase server client. Unauthenticated users attempting to access internal routes are redirected to `/auth/login`.
 
 ```typescript
-const internalRoutes = ["/dashboard", "/admin", ...];
-const isInternalRoute = internalRoutes.some(route =>
-  request.nextUrl.pathname.startsWith(route)
-);
+  // 1. Guard unauthorized password resets
+  if (!user && isAuthOnlyRoute) {
+    return NextResponse.rewrite(new URL('/404', request.url));
+  }
 
-if (!user && isInternalRoute) {
-  return NextResponse.redirect(new URL("/auth/login", request.url));
-}
+  // 2. Guard unauthorized users
+  if (!user && (isInternalRoute || isAuthOnlyRoute || isAdminRoute)) {
+    // TODO: notification "sign in to continue"
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
+
+  // 3. Guard for /admin routes
+  if (user && isAdminRoute) {
+    if (userRole !== "Admin") {
+      return NextResponse.rewrite(new URL('/404', request.url));
+    }
+  }
+
 ```
 
 > **Note:** Route group folders like `(internal)` are filesystem-only and do not appear in the URL. Middleware always checks the actual URL path.
@@ -122,48 +136,13 @@ if (!user && isInternalRoute) {
 
 ## Data Sync: `auth.users` → `public.Users`
 
-When a user signs up, Supabase creates a record in the internal `auth.users` table. A PostgreSQL trigger syncs this to the application-level `public.Users` table.
-
-### Function
-
-```sql
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
-BEGIN
-  INSERT INTO public."Users" (id, email, organization_name, role, created_at, updated_at)
-  VALUES (
-    new.id,
-    new.email,
-    (new.raw_user_meta_data->>'organization_name'),
-    'Pending',
-    now(),
-    now()
-  );
-  RETURN new;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-```
-
-### Trigger
-
-```sql
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-```
-
-### Field Mapping
-
-| `public.Users` field | Source |
-|---|---|
-| `id` | `auth.users.id` |
-| `email` | `auth.users.email` |
-| `organization_name` | `auth.users.raw_user_meta_data->>'organization_name'` |
-| `role` | Hardcoded `'Pending'` on signup |
-| `created_at` | `now()` |
-| `updated_at` | `now()` |
+When a user signs up, Supabase creates a record in the internal `auth.users` table. A PostgreSQL trigger syncs this to the application-level `public.Users` table, copying over the user's `id`, `email`, and `organization_name` from signup metadata. The user's `role` is hardcoded to `Pending` on creation.
 
 ---
+
+## Data Sync: `public.Users.role` → `auth.users.raw_app_meta_data`
+
+When an admin updates a user's `role` in `public.Users`, a second trigger syncs the new role into `auth.users.raw_app_meta_data`. This makes the role available in the JWT so middleware can read it without an extra database query. 
 
 ## Email (SMTP)
 
@@ -177,6 +156,6 @@ Confirmation and auth emails are sent via **Resend** over SMTP.
 | Sender (dev) | `onboarding@resend.dev` |
 | Sender (prod) | `noreply@yourdomain.com` (requires verified domain) |
 
-> **Dev note:** `onboarding@resend.dev` is Resend's default sender for testing and does not require a custom domain. For production, add and verify your domain on [resend.com/domains](https://resend.com/domains) and update the sender email in Supabase SMTP settings.
+> **Dev note:** `onboarding@resend.dev` is Resend's default sender for testing and does not require a custom domain. For production, add and verify a domain on [resend.com/domains](https://resend.com/domains) and update the sender email in Supabase SMTP settings.
 
 ---
