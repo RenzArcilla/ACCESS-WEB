@@ -210,7 +210,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           event_date?: string | null
-          id: string
+          id?: string
           image_url?: string | null
           status?: Database["public"]["Enums"]["event_status"] | null
           title?: string | null
