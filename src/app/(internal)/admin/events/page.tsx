@@ -1,4 +1,4 @@
-import { getEvents } from "@/features/events/services/events.service";
+import { getEventsForAdmin } from "@/features/events/services/events.admin.service";
 import EventsDashboard from "./EventsDashboard";
 
 export default async function Page({
@@ -11,7 +11,7 @@ export default async function Page({
   const currentPage = Number(page) || 1;
   const currentStatus = (status as "Published" | "Draft" | "All") || "All";
 
-  const { data, meta } = await getEvents({
+  const { data, meta } = await getEventsForAdmin({
     page: currentPage,
     status: currentStatus,
     limit: 10,
