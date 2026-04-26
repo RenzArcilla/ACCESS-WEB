@@ -1,14 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getEvents } from "@/features/events/services/events.service";
+import { getPublishedEvents } from "@/features/events/services/events.public.service";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
-    const status = searchParams.get("status") as "Published" | "Draft" | "All";
+
+    const valid_statuses = ["upcoming", "past", "all"] as const;
+    type PublicStatus = typeof valid_statuses[number];
+
+    const rawStatus = searchParams.get("status");
+    const status: PublicStatus = valid_statuses.includes(rawStatus as PublicStatus) 
+      ? (rawStatus as PublicStatus) 
+      : "all";
     const page = Number(searchParams.get("page") ?? 1);
     const limit = Number(searchParams.get("limit") ?? 10);
 
-    const result = await getEvents({ status: status ?? "All", page, limit });
+    const result = await getPublishedEvents({ status: status ?? "all", page, limit });
     return NextResponse.json(result);
   } catch (error) {
     console.error("[GET /api/public/events]", error);
