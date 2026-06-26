@@ -1,14 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server-client";
+import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware-client";
 
 export async function proxy(request: NextRequest) {
-  const response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  // The client and response are coupled, we must use the one returned here, 
+  // not a new one since response may be mutated during token refresh
+  const { supabase, response } = createSupabaseMiddlewareClient(request);
 
-  const internalRoutes = ["/borrow"];
+  const internalRoutes = ["/borrow"]; 
   const adminRoutes = ["/admin"];
   const authOnlyRoutes = ["/auth/reset-password"];
 
@@ -22,15 +20,16 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith(route)
   );
 
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Extract the role from metadata (synced by SQL triggers)
+  // getUser() also triggers token refresh — must be called before routing logic
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) {
+    response.cookies.delete("sb-plzkphbuwfokfcopwlxv-auth-token");
+  }
   const userRole = user?.app_metadata?.role;
 
   // 1. Guard unauthorized password resets
   if (!user && isAuthOnlyRoute) {
-    return NextResponse.rewrite(new URL('/404', request.url));
+    return NextResponse.rewrite(new URL("/404", request.url));
   }
 
   // 2. Guard unauthorized users
@@ -39,11 +38,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  // 3. Guard for /admin routes
-  if (user && isAdminRoute) {
-    if (userRole !== "Admin") {
-      return NextResponse.rewrite(new URL('/404', request.url));
-    }
+  if (user && isAdminRoute && userRole !== "Admin") {
+    return NextResponse.rewrite(new URL("/404", request.url));
   }
 
   // Redirect authenticated users away from auth pages
@@ -52,6 +48,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  // Return the response from the client factory, not a freshly constructed one
   return response;
 }
 
@@ -63,5 +60,6 @@ export const config = {
     "/auth",
     "/auth/login",
     "/auth/register",
+    "/"
   ],
 };
