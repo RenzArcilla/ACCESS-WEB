@@ -1,5 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { checkRole } from "@/utils/checkRole";
+import {
+  AdminEventsFilterSchema,
+  CreateEventSchema,
+  EventIdSchema,
+  UpdateEventSchema,
+} from "../schemas";
 
 export type EventsFilter = {
   status?: "Published" | "Draft" | "All";
@@ -8,19 +14,21 @@ export type EventsFilter = {
 };
 
 export async function getEventsForAdmin({ status = "All", page = 1, limit = 10 }: EventsFilter = {}) {
+  const filters = AdminEventsFilterSchema.parse({ status, page, limit });
+
   await checkRole({roles: "Admin"});
   const supabase = await createSupabaseServerClient();
 
-  const max_rows = Math.min(limit, 50);
-  const from = (page - 1) * limit;
+  const max_rows = Math.min(filters.limit, 50);
+  const from = (filters.page - 1) * filters.limit;
   const to = from + max_rows - 1;
 
   let query = supabase
     .from("Events")
     .select("id, title, content_description, event_date, status, image_url", { count: "exact" });
 
-  if (status !== "All") {
-    query = query.eq("status", status);
+  if (filters.status !== "All") {
+    query = query.eq("status", filters.status);
   }
 
   query = query
@@ -33,15 +41,17 @@ export async function getEventsForAdmin({ status = "All", page = 1, limit = 10 }
   return {
     data,
     meta: { 
-      page, 
-      limit, 
+      page: filters.page, 
+      limit: filters.limit, 
       total: count ?? 0, 
-      totalPages: Math.ceil((count ?? 0) / limit) 
+      totalPages: Math.ceil((count ?? 0) / filters.limit) 
     },
   };
 }
 
 export async function getEventForAdminById(id: string) {
+  EventIdSchema.parse(id);
+
   await checkRole({roles: "Admin"});
   const supabase = await createSupabaseServerClient();
 
@@ -57,6 +67,8 @@ export async function getEventForAdminById(id: string) {
 }
 
 export async function publishEventById(id: string) {
+  EventIdSchema.parse(id);
+
   await checkRole({roles: "Admin"});
   const supabase = await createSupabaseServerClient();
 
@@ -69,6 +81,8 @@ export async function publishEventById(id: string) {
 }
 
 export async function unpublishEventById(id: string) {
+  EventIdSchema.parse(id);
+
   await checkRole({roles: "Admin"});
   const supabase = await createSupabaseServerClient();
 
@@ -81,6 +95,8 @@ export async function unpublishEventById(id: string) {
 }
 
 export async function deleteEventById(id: string) {
+  EventIdSchema.parse(id);
+
   await checkRole({ roles: "Admin" });
   const supabase = await createSupabaseServerClient();
 
@@ -125,6 +141,8 @@ export type EventProps = {
 };
 
 export async function postEvent(event: EventProps) {
+  const validatedEvent = CreateEventSchema.parse(event);
+
   await checkRole({roles: "Admin"});
   const supabase = await createSupabaseServerClient();
 
@@ -133,11 +151,11 @@ export async function postEvent(event: EventProps) {
   const { data, error } = await supabase
     .from("Events")
     .insert({
-      title: event.title,
-      content_description: event.content_description,
-      event_date: event.event_date || null, 
-      status: event.status ?? "Draft",
-      image_url: event.image_url,
+      title: validatedEvent.title,
+      content_description: validatedEvent.content_description,
+      event_date: validatedEvent.event_date || null, 
+      status: validatedEvent.status ?? "Draft",
+      image_url: validatedEvent.image_url,
       created_by: user?.id,
       created_at: new Date().toISOString(),
       updated_at: null
@@ -178,13 +196,17 @@ export async function uploadEventImage(file: File): Promise<string> {
 export type UpdateEventProps = Partial<EventProps>;
 
 export async function editEvent(id: string, event: UpdateEventProps) {
+  EventIdSchema.parse(id);
+
+  const validatedEvent = UpdateEventSchema.parse(event);
+
   await checkRole({ roles: "Admin" });
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("Events")
     .update({
-      ...event,
+      ...validatedEvent,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
