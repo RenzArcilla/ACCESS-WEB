@@ -10,7 +10,7 @@
 
 import { reorderOfficers } from "@/features/officers/services/officers.admin.service";
 import { ReorderOfficersSchema } from "@/features/officers/schemas";
-import { toErrorResponse } from "@/lib/errors";
+import { AppError, toErrorResponse } from "@/lib/errors";
 import { NextResponse } from "next/server";
 
 // ─────────────────────────────────────────────────────────────────────────

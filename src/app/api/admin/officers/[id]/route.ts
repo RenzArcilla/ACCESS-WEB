@@ -16,7 +16,7 @@ import {
   updateOfficer,
 } from "@/features/officers/services/officers.admin.service";
 import { UpdateOfficerSchema } from "@/features/officers/schemas";
-import { toErrorResponse } from "@/lib/errors";
+import { AppError, toErrorResponse } from "@/lib/errors";
 import { NextResponse } from "next/server";
 
 // Next.js Route Context: automatically provides route parameters
